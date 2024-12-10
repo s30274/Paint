@@ -12,8 +12,11 @@ main_loop:
     int 33h     ;| zwrot pozycji kursora
                 ;| BX - Stan przycisku, CX - kolumna, DX - wiersz
 
-    cmp BX, 1
-        je draw_pixel
+
+    cmp BX, 1               ;|
+        jne return          ;| sprawdzenie czy lpm jest wciśnięty
+
+    jmp draw                ;| rysowanie
 
     return:
 
@@ -50,19 +53,18 @@ color_change:
     inc byte [color]            ;| zwiększanie wartości color o 1
     jmp main_loop
 
-draw_pixel:
-;     inc DX
-;     dec CX
+draw:
+    dec DX
 
     mov AL, [brush_size]
-    mul AL ; w AL,  - liczba pikseli
+    mul AL                      ;| w AL,  - liczba pikseli
     dec AL
     mov BL, AL
 
     petla:
         mov AH, 0h
         mov AL, BL
-        div byte [brush_size] ;po tym w AH=reszta
+        div byte [brush_size]   ;| po tym w AH=reszta
 
         cmp AH, 0
 
@@ -72,20 +74,28 @@ draw_pixel:
 
             je skok
 
-        land:
+        back:
 
         cmp BL, 0
             je return
 
         dec BL
-        dec CX
+
+        cmp CX, 0               ;|
+            je petla            ;| sprawdzenie lewej krawędzi ekranu
+
+        dec CX                  ;| zmniejszenie CX (kolumny pixela) jeżeli nie jest poza ekranem
 
         jmp petla
 
     skok:
+        push BX
+        mov BX, [brush_size]
+        mov BH, 00h
         dec DX
-        add CL, [brush_size]
-        jmp land
+        add CX, BX
+        pop BX
+        jmp back
 
 brush_inc:
     mov AH, 00h                 ;|
